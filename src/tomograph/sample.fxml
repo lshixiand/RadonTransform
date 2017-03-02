@@ -23,16 +23,16 @@
             <Slider fx:id="lSlider" showTickMarks="true" />
             <Label fx:id="lValue"/>
         </HBox>
-        <HBox>
-            <Label text="filter:"/>
-            <Slider fx:id="filterSlider" max="1" showTickMarks="true" />
-            <Label fx:id="filterValue"/>
-        </HBox>
         <Button text="Draw" onAction="#draw"/>
     </VBox>
     <VBox>
         <Canvas fx:id="inputImage" width="400" height="400"/>
-        <Canvas fx:id="plot" width="400" height="400"/>
+        <GridPane >
+            <Canvas fx:id="plot" width="200" height="200" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <Canvas fx:id="fft" width="200" height="200" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <Canvas fx:id="ifft" width="200" height="200" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <Canvas fx:id="filteredCanvas" width="200" height="200" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        </GridPane>
     </VBox>
     <VBox>
         <Canvas fx:id="inputCanvas" width="400" height="400"/>
