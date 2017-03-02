@@ -3,11 +3,14 @@
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.geometry.Insets?>
 <HBox fx:controller="tomograph.Controller" prefHeight="250" prefWidth="250"
-      xmlns:fx="http://javafx.com/fxml">
-
-
-    <VBox>
+      xmlns:fx="http://javafx.com/fxml" style="-fx-background: #000000;">
+    <VBox minWidth="200" >
+        <padding><Insets top="25" right="25" bottom="25" left="25"/></padding>
         <HBox>
             <Label text="alfa:"/>
             <Slider min="0.0001" fx:id="alfaSlider" showTickMarks="true"/>
@@ -15,7 +18,7 @@
         </HBox>
         <HBox>
             <Label text="beta:"/>
-            <Slider min="1" fx:id="betaSlider" max="250" showTickMarks="true"/>
+            <Slider min="2" fx:id="betaSlider" max="250" showTickMarks="true"/>
             <Label fx:id="betaValue"/>
         </HBox>
         <HBox>
@@ -24,6 +27,14 @@
             <Label fx:id="lValue"/>
         </HBox>
         <Button text="Draw" onAction="#draw"/>
+        <fx:define>
+            <ToggleGroup fx:id="imageGroup"/>
+        </fx:define>
+        <RadioButton fx:id="squarePhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="square"/>
+        <RadioButton fx:id="twoCirclePhantom"  toggleGroup="$imageGroup" onAction="#loadImage" text="two circles"/>
+        <RadioButton fx:id="sheppLoganPhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="Shepp-Logan phantom"/>
+        <RadioButton fx:id="headPhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="head Phantom"/>
+        <CheckBox fx:id="drawLines" text="draw Lines"/>
     </VBox>
     <VBox>
         <Canvas fx:id="inputImage" width="400" height="400"/>

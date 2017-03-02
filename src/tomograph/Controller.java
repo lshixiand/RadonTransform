@@ -1,10 +1,13 @@
 package tomograph;
 
 import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
@@ -29,10 +32,12 @@ public class Controller implements Initializable {
     public Canvas outputCanvas;
     public Canvas tomographyCanvas;
     public Slider alfaSlider, betaSlider, lSlider;
-    public Label alfaValue, betaValue, lValue, filterValue;
+    public Label alfaValue, betaValue, lValue;
     public Canvas inputImage, plot;
     public Canvas fft, filteredCanvas, ifft;
-    private double alfa, l, filter;
+    public RadioButton twoCirclePhantom,  sheppLoganPhantom, squarePhantom,headPhantom;
+    public CheckBox drawLines;
+    private double alfa, l;
     private int beta;
     private GraphicsContext gc;
     private Image image;
@@ -59,24 +64,15 @@ public class Controller implements Initializable {
         alfaSlider.setValue(Math.toRadians(3));
         betaSlider.setValue(85);
         lSlider.setValue(Math.toRadians(175));
-        gc = inputCanvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-        gc.setFill(Color.BLACK);
-        gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-        image = new Image(this.getClass().getResource("TwoCircles.png").toString(), inputCanvas.getWidth(), inputCanvas.getHeight(), true, false);
-        //image = new Image(this.getClass().getResource("SheppLoganPhantom.png").toString(), inputCanvas.getWidth(), inputCanvas.getHeight(), true, false);
-        image = new Image(this.getClass().getResource("fantom.png").toString());
-        //image = new Image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/SheppLogan_Phantom.svg/512px-SheppLogan_Phantom.svg.png");
-        // ("http://img.medscapestatic.com/pi/meds/ckb/39/15039tn.jpg");
-        GraphicsContext inputGraphicsContext = inputImage.getGraphicsContext2D();
-        inputGraphicsContext.clearRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-        inputGraphicsContext.setFill(Color.BLACK);
-        inputGraphicsContext.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-        inputGraphicsContext.drawImage(image, 0, 0);
+        gc = inputImage.getGraphicsContext2D();
+        headPhantom.setSelected(true);
+        loadImage();
+
 
     }
 
     public void draw(ActionEvent actionEvent) {
+
         gc.clearRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
@@ -87,8 +83,6 @@ public class Controller implements Initializable {
         outputGC.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
 
         PixelReader pr = image.getPixelReader();
-        Color c = pr.getColor(100, 100);
-        System.out.println(c.getHue() + " " + c.getOpacity() + " " + c.getBrightness());
         gc.drawImage(image, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
         r = Math.min(image.getWidth(), image.getHeight());
         r -= 2;
@@ -96,13 +90,15 @@ public class Controller implements Initializable {
         double canvasR = (Math.min(inputCanvas.getWidth(), inputCanvas.getHeight()) - 2) / 2.f;
 
         gc.setStroke(Color.RED);
-        gc.strokeOval(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+        if(drawLines.isSelected())
+            gc.strokeOval(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
         WritableImage radonTranform = new WritableImage(beta, (int) ((2 * PI) / alfa + 1));
         PixelWriter radonTransWritter = radonTranform.getPixelWriter();
         int x = 0, y = 0;
         for (float angle = 0; angle < 2.f * PI; angle += alfa) {
             for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
-                gc.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR + canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
+                if(drawLines.isSelected())
+                    gc.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR + canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
                 double val = BresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), pr);
                 radonTransWritter.setColor(x++, y, Color.hsb(0, 0, val));
             }
@@ -130,12 +126,9 @@ public class Controller implements Initializable {
         drawPlot(filteredCanvas, plotData, beta);
         smoothData(plotData,beta);
         drawPlot(ifft, plotData, beta);
-        //drawProjection
-//        WritableImage outputImage = new WritableImage((int) image.getWidth(), (int) image.getHeight());
-//        PixelWriter pixelWriter = outputImage.getPixelWriter();
-//        PixelReader pixelReader = outputImage.getPixelReader();
         double[][] outputImage = new double[(int) image.getWidth()][(int) image.getHeight()];
-        x = y = 0;
+        double[][] outputNotFilteredImage = new double[(int) image.getWidth()][(int) image.getHeight()];
+        y = 0;
         for (float angle = 0; angle < 2.f * PI; angle += alfa) {
             float data[] = new float[beta];
             for(int i=0;i<beta;i++)
@@ -144,19 +137,21 @@ public class Controller implements Initializable {
             smoothData(data,beta);
             x = 0;
             for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta-1)) {
-                //double val = pr2.getColor(x, y).getBrightness();
-                double val = data[x];
+                double noFiltredData = pr2.getColor(x, y).getBrightness();
+                double filterdData = data[x];
                 x++;
-                System.out.print(val + ", ");
-                DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), val, outputImage);
-                //outputGC.setStroke(Color.hsb(0,0,val,0.5));
-                //outputGC.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR +canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
+                DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), filterdData, outputImage);
+                DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), noFiltredData, outputNotFilteredImage);
 
             }
             y++;
         }
         Image resultImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputImage);
+        Image resultNoFiltredImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputNotFilteredImage);
+
         outputGC.drawImage(resultImage, 0, 0, outputCanvas.getWidth(), outputCanvas.getHeight());
+        inputCanvas.getGraphicsContext2D().drawImage(resultNoFiltredImage, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+
     }
 
     private void normalize(WritableImage radonTranform) {
@@ -324,16 +319,19 @@ public class Controller implements Initializable {
 
     private void drawPlot(Canvas canvas, float[] data, int size) {
         GraphicsContext gc2 = canvas.getGraphicsContext2D();
+        gc2.setStroke(Color.WHITE);
         gc2.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc2.beginPath();
         gc2.rect(0, 0, plot.getWidth(), plot.getHeight());
+        float max, min;
+        max = min=data[0];
+        for (int i=1;i<size;i++) {
+            max = Math.max(max, data[i]);
+            min = Math.min(max, data[i]);
+        }
         gc2.moveTo(0, plot.getHeight());
-        float max = 0;
-        for (int i=0;i<size;i++)
-            max=Math.max(max,data[i]);
-
         for (int i = 0; i < size; i++) {
-            gc2.lineTo(i * plot.getWidth() / beta, plot.getHeight() * (1 - data[i]/max));
+            gc2.lineTo(i * plot.getWidth() / beta, plot.getHeight() * (1-(data[i])/(max)));
         }
         gc2.stroke();
     }
@@ -347,9 +345,13 @@ public class Controller implements Initializable {
         floatFFT.complexInverse(data, true);
     }
     private void smoothData(float[] data, int size){
-        int windowSize=size/10;
+        int windowSize=5;
         float sum;
         float[] output= data.clone();
+        float average = 0;
+        for(int i=0;i<size;i++)
+            average+=data[i];
+        average/=size;
         for(int i=0;i<size;i++){
             sum=0;
             for(int j=Math.max(0,i-windowSize/2);j<Math.min(i+windowSize/2,size);j++){
@@ -357,5 +359,28 @@ public class Controller implements Initializable {
             }
             data[i]=sum/windowSize;
         }
+    }
+    @FXML
+    private void loadImage(){
+        gc.clearRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+        String name = "";
+        if(sheppLoganPhantom.isSelected())
+            name = "SheppLoganPhantom.png";
+        else if(twoCirclePhantom.isSelected())
+            name = "TwoCircles.png";
+        else if(squarePhantom.isSelected())
+            name = "fantom.png";
+        else if(headPhantom.isSelected())
+            name = "head.png";
+        image = new Image(this.getClass().getResource(name).toString(), inputCanvas.getWidth(), inputCanvas.getHeight(), true, false);
+        GraphicsContext inputGraphicsContext = inputImage.getGraphicsContext2D();
+        inputGraphicsContext.setFill(Color.BLACK);
+        inputGraphicsContext.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+        inputGraphicsContext.drawImage(image, 0, 0);
+        GraphicsContext tc =tomographyCanvas.getGraphicsContext2D();
+        tc.setFill(Color.BLACK);
+        tc.fillRect(0, 0, tomographyCanvas.getWidth(), tomographyCanvas.getHeight());
     }
 }
