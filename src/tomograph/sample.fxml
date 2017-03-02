@@ -1,0 +1,38 @@
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Label?>
+<HBox fx:controller="tomograph.Controller" prefHeight="250" prefWidth="250"
+      xmlns:fx="http://javafx.com/fxml">
+
+
+    <VBox>
+        <HBox>
+            <Label text="alfa:"/>
+            <Slider min="0.0001" fx:id="alfaSlider" showTickMarks="true"/>
+            <Label fx:id="alfaValue"/>
+        </HBox>
+        <HBox>
+            <Label text="beta:"/>
+            <Slider min="1" fx:id="betaSlider" max="250" showTickMarks="true"/>
+            <Label fx:id="betaValue"/>
+        </HBox>
+        <HBox>
+            <Label text="l:"/>
+            <Slider fx:id="lSlider" showTickMarks="true" />
+            <Label fx:id="lValue"/>
+        </HBox>
+        <HBox>
+            <Label text="filter:"/>
+            <Slider fx:id="filterSlider" max="1" showTickMarks="true" />
+            <Label fx:id="filterValue"/>
+        </HBox>
+        <Button text="Draw" onAction="#draw"/>
+    </VBox>
+    <VBox>
+        <Canvas fx:id="inputCanvas" width="400" height="400"/>
+        <Canvas fx:id="outputCanvas" width="400" height="400"/>
+    </VBox>
+    <Canvas fx:id="tomographyCanvas" width="400" height="800"/>
+</HBox>
