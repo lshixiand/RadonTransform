@@ -16,6 +16,7 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import org.jtransforms.fft.FloatFFT_1D;
 
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,14 +32,14 @@ public class Controller implements Initializable {
     public Canvas inputCanvas;
     public Canvas outputCanvas;
     public Canvas tomographyCanvas;
-    public Slider alfaSlider, betaSlider, lSlider;
-    public Label alfaValue, betaValue, lValue;
+    public Slider alfaSlider, betaSlider, lSlider, windowSlider;
+    public Label alfaValue, betaValue, lValue,windowValue;
     public Canvas inputImage, plot;
     public Canvas fft, filteredCanvas, ifft;
-    public RadioButton twoCirclePhantom,  sheppLoganPhantom, squarePhantom,headPhantom;
+    public RadioButton twoCirclePhantom,  sheppLoganPhantom, squarePhantom,headPhantom,horsePhantom;
     public CheckBox drawLines;
     private double alfa, l;
-    private int beta;
+    private int beta, windowSize;
     private GraphicsContext gc;
     private Image image;
     private double r;
@@ -51,19 +52,29 @@ public class Controller implements Initializable {
         });
         betaSlider.valueProperty().addListener((event) -> {
             beta = (int) Math.round(betaSlider.getValue());
+            if(beta%2==0) beta+=1;
             betaValue.setText(String.format("%d", beta));
         });
         lSlider.valueProperty().addListener((event) -> {
             l = lSlider.getValue();
             lValue.setText(String.format("%.2f' = %.2f\u00B0", l, Math.toDegrees(l)));
         });
+        windowSlider.valueProperty().addListener((event) -> {
+            windowSize = (int)windowSlider.getValue();
+            windowValue.setText(String.format("%d", windowSize));
+        });
         alfaSlider.setMax(PI);
         lSlider.setMax(PI);
-        alfaSlider.setMin(Math.toRadians(0.5));
+        alfaSlider.setMin(Math.toRadians(0.2));
         alfaSlider.setMax(Math.toRadians(45));
         alfaSlider.setValue(Math.toRadians(3));
+        betaSlider.setMax(1000);
         betaSlider.setValue(85);
-        lSlider.setValue(Math.toRadians(175));
+        lSlider.setMax(Math.toRadians(250));
+        lSlider.setValue(Math.toRadians(180));
+        windowSlider.setMin(1);
+        windowSlider.setMax(20);
+        windowSlider.setValue(1);
         gc = inputImage.getGraphicsContext2D();
         headPhantom.setSelected(true);
         loadImage();
@@ -73,7 +84,6 @@ public class Controller implements Initializable {
 
     public void draw(ActionEvent actionEvent) {
 
-        gc.clearRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
 
@@ -88,7 +98,6 @@ public class Controller implements Initializable {
         r -= 2;
         r /= 2;
         double canvasR = (Math.min(inputCanvas.getWidth(), inputCanvas.getHeight()) - 2) / 2.f;
-
         gc.setStroke(Color.RED);
         if(drawLines.isSelected())
             gc.strokeOval(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
@@ -112,7 +121,6 @@ public class Controller implements Initializable {
         float[] plotData = new float[beta];
         for (int i = 0; i < beta; i++) {
             plotData[i] = (float) pr2.getColor(i, 0).getBrightness();
-            plotData[i]=Math.max(0.5f,plotData[i]);
         }
         drawPlot(plot, plotData, beta);
         FloatFFT_1D floatFFT = new FloatFFT_1D(beta / 2);
@@ -181,7 +189,7 @@ public class Controller implements Initializable {
         WritableImage image = new WritableImage(width, height);
         PixelWriter pw = image.getPixelWriter();
         double min, max;
-        min = max = outputImage[0][0];
+        min = max = outputImage[width/2][height/2];
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 double value = outputImage[x][y];
@@ -191,8 +199,7 @@ public class Controller implements Initializable {
         }
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                double value = outputImage[x][y];
-                value = (value - min) / (max - min);
+                double value = (outputImage[x][y] - min) / (max - min);
                 pw.setColor(x, y, Color.hsb(0, 0, value));
             }
         }
@@ -331,7 +338,7 @@ public class Controller implements Initializable {
         }
         gc2.moveTo(0, plot.getHeight());
         for (int i = 0; i < size; i++) {
-            gc2.lineTo(i * plot.getWidth() / beta, plot.getHeight() * (1-(data[i])/(max)));
+            gc2.lineTo(i * plot.getWidth() / beta, plot.getHeight() * (1-(data[i]-min)/(max-min)));
         }
         gc2.stroke();
     }
@@ -345,13 +352,13 @@ public class Controller implements Initializable {
         floatFFT.complexInverse(data, true);
     }
     private void smoothData(float[] data, int size){
-        int windowSize=5;
+        if(windowSize<=1) return;
         float sum;
         float[] output= data.clone();
-        float average = 0;
-        for(int i=0;i<size;i++)
-            average+=data[i];
-        average/=size;
+//        float average = 0;
+//        for(int i=0;i<size;i++)
+//            average+=data[i];
+//        average/=size;
         for(int i=0;i<size;i++){
             sum=0;
             for(int j=Math.max(0,i-windowSize/2);j<Math.min(i+windowSize/2,size);j++){
@@ -374,13 +381,20 @@ public class Controller implements Initializable {
             name = "fantom.png";
         else if(headPhantom.isSelected())
             name = "head.png";
-        image = new Image(this.getClass().getResource(name).toString(), inputCanvas.getWidth(), inputCanvas.getHeight(), true, false);
+        else if(horsePhantom.isSelected())
+            name = "horse.png";
+        image = new Image(this.getClass().getResource("/images/"+name).toString(), inputCanvas.getWidth(), inputCanvas.getHeight(), true, false);
         GraphicsContext inputGraphicsContext = inputImage.getGraphicsContext2D();
         inputGraphicsContext.setFill(Color.BLACK);
         inputGraphicsContext.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
         inputGraphicsContext.drawImage(image, 0, 0);
-        GraphicsContext tc =tomographyCanvas.getGraphicsContext2D();
-        tc.setFill(Color.BLACK);
-        tc.fillRect(0, 0, tomographyCanvas.getWidth(), tomographyCanvas.getHeight());
+        canvasToBlack(inputCanvas);
+        canvasToBlack(tomographyCanvas);
+        canvasToBlack(outputCanvas);
+    }
+    private void canvasToBlack(Canvas canvas){
+        GraphicsContext graphicsContext2D =canvas.getGraphicsContext2D();
+        graphicsContext2D.setFill(Color.BLACK);
+        graphicsContext2D.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
     }
 }
