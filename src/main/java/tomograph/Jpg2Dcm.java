@@ -81,38 +81,13 @@ public class Jpg2Dcm {
         }
     }
 
-    public final void setCharset(String charset) {
-        this.charset = charset;
-    }
-
-    private final void setTransferSyntax(String uid) {
-        this.transferSyntax = uid;
-    }
-
-    private final void setNoAPPn(boolean noAPPn) {
-        this.noAPPn = noAPPn;
-    }
-
-    private void loadConfiguration(File cfgFile, boolean augment) throws IOException {
-        Properties tmp = augment?new Properties(this.cfg):new Properties();
-        BufferedInputStream in = new BufferedInputStream(new FileInputStream(cfgFile));
-
-        try {
-            tmp.load(in);
-        } finally {
-            in.close();
-        }
-
-        this.cfg = tmp;
-    }
-
-    public void convert(File jpgFile, File dcmFile) throws IOException {
+    public void convert(File jpgFile, File dcmFile, Properties properties) throws IOException {
+        this.cfg.putAll(properties);
         this.jpgHeaderLen = 0;
         this.jpgLen = (int)jpgFile.length();
         DataInputStream jpgInput = new DataInputStream(new BufferedInputStream(new FileInputStream(jpgFile)));
 
         try {
-            String uid = UIDUtils.createUID();
             DicomObject dicomObject = new BasicDicomObject();
             dicomObject.putString(524293, VR.CS, this.charset);
             Enumeration now = this.cfg.propertyNames();
@@ -267,106 +242,5 @@ public class Jpg2Dcm {
             attrs.putInt(tag, VR.US, val);
         }
 
-    }
-
-    public static void main(String[] args) {
-        try {
-            CommandLine e = parse(args);
-            Jpg2Dcm jpg2Dcm = new Jpg2Dcm();
-            if(e.hasOption("charset")) {
-                jpg2Dcm.setCharset(e.getOptionValue("charset"));
-            }
-
-            if(e.hasOption("c")) {
-                jpg2Dcm.loadConfiguration(new File(e.getOptionValue("c")), true);
-            }
-
-            if(e.hasOption("C")) {
-                jpg2Dcm.loadConfiguration(new File(e.getOptionValue("C")), false);
-            }
-
-            if(e.hasOption("uid-prefix")) {
-                UIDUtils.setRoot(e.getOptionValue("uid-prefix"));
-            }
-
-            if(e.hasOption("mpeg")) {
-                jpg2Dcm.setTransferSyntax("1.2.840.10008.1.2.4.100");
-            }
-
-            if(e.hasOption("transfer-syntax")) {
-                jpg2Dcm.setTransferSyntax(e.getOptionValue("transfer-syntax"));
-            }
-
-            jpg2Dcm.setNoAPPn(e.hasOption("no-appn"));
-            List argList = e.getArgList();
-            File jpgFile = new File((String)argList.get(0));
-            File dcmFile = new File((String)argList.get(1));
-            long start = System.currentTimeMillis();
-            jpg2Dcm.convert(jpgFile, dcmFile);
-            long fin = System.currentTimeMillis();
-            System.out.println("Encapsulated " + jpgFile + " to " + dcmFile + " in " + (fin - start) + "ms.");
-        } catch (IOException var10) {
-            var10.printStackTrace();
-        }
-
-    }
-
-    private static CommandLine parse(String[] args) {
-        Options opts = new Options();
-        OptionBuilder.withArgName("code");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Specific Character Set code string, ISO_IR 100 by default");
-        OptionBuilder.withLongOpt("charset");
-        opts.addOption(OptionBuilder.create());
-        OptionBuilder.withArgName("file");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Specifies DICOM attributes included additional to mandatory defaults");
-        opts.addOption(OptionBuilder.create("c"));
-        OptionBuilder.withArgName("file");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Specifies DICOM attributes included instead of mandatory defaults");
-        opts.addOption(OptionBuilder.create("C"));
-        OptionBuilder.withArgName("prefix");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Generate UIDs with given prefix, 1.2.40.0.13.1.<host-ip> by default.");
-        OptionBuilder.withLongOpt("uid-prefix");
-        opts.addOption(OptionBuilder.create());
-        OptionBuilder.withArgName("uid");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Transfer Syntax; 1.2.840.10008.1.2.4.50 (JPEG Baseline) by default.");
-        OptionBuilder.withLongOpt("transfer-syntax");
-        opts.addOption(OptionBuilder.create());
-        opts.addOption((String)null, "mpeg", false, "Same as --transfer-syntax 1.2.840.10008.1.2.4.100 (MPEG2).");
-        opts.addOption((String)null, "no-appn", false, "Exclude application segments APPn from JPEG stream; encapsulate JPEG stream verbatim by default.");
-        opts.addOption("h", "help", false, "Print this message");
-        opts.addOption("V", "version", false, "Print the version information and exit");
-        CommandLine cl = null;
-
-        try {
-            cl = (new PosixParser()).parse(opts, args);
-        } catch (ParseException var4) {
-            exit("jpg2dcm: " + var4.getMessage());
-            throw new RuntimeException("unreachable");
-        }
-
-        if(cl.hasOption('V')) {
-            Package formatter = org.dcm4che2.tool.jpg2dcm.Jpg2Dcm.class.getPackage();
-            System.out.println("jpg2dcm v" + formatter.getImplementationVersion());
-            System.exit(0);
-        }
-
-        if(cl.hasOption('h') || cl.getArgList().size() != 2) {
-            HelpFormatter formatter1 = new HelpFormatter();
-            formatter1.printHelp("jpg2dcm [Options] <jpgfile> <dcmfile>", "Encapsulate JPEG Image into DICOM Object.\nOptions:", opts, "--\nExample 1: Encapulate JPEG Image verbatim with default values for mandatory DICOM attributes into DICOM Secondary Capture Image:\n$ jpg2dcm image.jpg image.dcm\n--\nExample 2: Encapulate JPEG Image without application segments and additional DICOM attributes to mandatory defaults into DICOM Image Object:\n$ jpg2dcm --no-appn -c patattrs.cfg homer.jpg image.dcm\n--\nExample 3: Encapulate MPEG2 Video with specified DICOM attributes into DICOM Video Object:\n$ jpg2dcm --mpeg -C mpg2dcm.cfg video.mpg video.dcm");
-            System.exit(0);
-        }
-
-        return cl;
-    }
-
-    private static void exit(String msg) {
-        System.err.println(msg);
-        System.err.println("Try \'jpg2dcm -h\' for more information.");
-        System.exit(1);
     }
 }

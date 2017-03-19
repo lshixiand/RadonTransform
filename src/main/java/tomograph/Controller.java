@@ -10,7 +10,9 @@ import javafx.scene.image.*;
 import javafx.scene.paint.Color;
 import org.jtransforms.fft.FloatFFT_1D;
 
+import java.io.File;
 import java.net.URL;
+import java.util.Properties;
 import java.util.ResourceBundle;
 
 import static java.lang.Math.PI;
@@ -29,6 +31,12 @@ public class Controller implements Initializable {
     public Canvas fft, filteredCanvas, ifft;
     public RadioButton twoCirclePhantom, sheppLoganPhantom, squarePhantom, headPhantom, horsePhantom;
     public CheckBox drawLines;
+    public TextField patientName;
+    public TextArea comment;
+    public TextField studyTime;
+    public DatePicker patientBirthDate;
+    public TextField patientSex;
+    public DatePicker studyDate;
     private double alfa, l;
     private int beta, windowSize;
     private GraphicsContext gc;
@@ -383,6 +391,12 @@ public class Controller implements Initializable {
         inputGraphicsContext.drawImage(image, 0, 0);
         canvasToBlack(inputCanvas);
         canvasToBlack(tomographyCanvas);
+        outputImageView.setImage(null);
+        resultImage = null;
+        canvasToBlack(plot);
+        canvasToBlack(ifft);
+        canvasToBlack(fft);
+        canvasToBlack(filteredCanvas);
     }
 
     private void canvasToBlack(Canvas canvas) {
@@ -397,6 +411,22 @@ public class Controller implements Initializable {
         if (fileName.getText().isEmpty())
             fileName.setText("dicom");
         DicomHelper dh = new DicomHelper();
-        dh.saveFile(resultImage, fileName.getText());
+        Properties properties = new Properties();
+        properties.put("00100010", patientName.getText()); // Patien Full Name
+        properties.put("00100040", patientSex.getText()); //Patient's Sex
+        if(patientBirthDate.getValue()!=null)
+            properties.put("00100030", patientBirthDate.getValue().toString()); //Patient's Birth Date
+        if(studyDate.getValue()!=null)
+        properties.put("00080020", studyDate.getValue().toString()); //Study Date
+        properties.put("00080030", studyTime.getText()); //Study Time
+        properties.put("00324000", comment.getText()); //Comments
+        dh.saveFile(resultImage, fileName.getText(), properties);
+    }
+
+    public void saveJpg(ActionEvent actionEvent) {
+        if (resultImage == null)
+            draw(null);
+        DicomHelper dicomHelper = new DicomHelper();
+        dicomHelper.saveImage(image, fileName.getText());
     }
 }
