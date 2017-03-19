@@ -13,6 +13,7 @@
 <?import javafx.scene.control.DateCell?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ProgressBar?>
 <ScrollPane fx:controller="tomograph.Controller" xmlns:fx="http://javafx.com/fxml" style="-fx-background: #000000;">
     <HBox prefHeight="250" prefWidth="250">
         <VBox spacing="20" minWidth="350">
@@ -34,7 +35,8 @@
                 <Slider fx:id="windowSlider" showTickMarks="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                 <Label fx:id="windowValue" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
             </GridPane>
-            <Button text="Draw" onAction="#draw" maxWidth="Infinity"/>
+            <Button text="Draw" onAction="#draw" maxWidth="Infinity" fx:id="drawButton"/>
+            <ProgressBar maxWidth="Infinity" visible="false" fx:id="progressBar"/>
             <fx:define>
                 <ToggleGroup fx:id="imageGroup"/>
             </fx:define>
@@ -76,6 +78,10 @@
             </HBox>
             <Button text="Save DICOM" onAction="#saveImage" maxWidth="Infinity"/>
             <Button text="Save JPG" onAction="#saveJpg" maxWidth="Infinity"/>
+            <HBox spacing="20">
+                <Label text="Reconstruction error:"/>
+                <Label fx:id="reconstructionErrorLabel"/>
+            </HBox>
         </VBox>
         <VBox>
             <Canvas fx:id="inputImage" width="400" height="400"/>
