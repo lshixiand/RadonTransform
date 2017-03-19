@@ -7,9 +7,11 @@
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.TextField?>
 <HBox fx:controller="tomograph.Controller" prefHeight="250" prefWidth="250"
       xmlns:fx="http://javafx.com/fxml" style="-fx-background: #000000;">
-    <VBox>
+    <VBox spacing="20" minWidth="350">
     <padding><Insets top="25" right="10" bottom="25" left="10"/></padding>
         <GridPane minWidth="200" >
             <Label text="alfa:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
@@ -25,16 +27,22 @@
             <Slider fx:id="windowSlider" showTickMarks="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
             <Label fx:id="windowValue" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
         </GridPane>
-        <Button text="Draw" onAction="#draw"/>
+        <Button text="Draw" onAction="#draw" maxWidth="Infinity"/>
         <fx:define>
             <ToggleGroup fx:id="imageGroup"/>
         </fx:define>
+        <VBox>
         <RadioButton fx:id="squarePhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="square"/>
         <RadioButton fx:id="twoCirclePhantom"  toggleGroup="$imageGroup" onAction="#loadImage" text="two circles"/>
         <RadioButton fx:id="sheppLoganPhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="Shepp-Logan phantom"/>
         <RadioButton fx:id="headPhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="head Phantom"/>
         <RadioButton fx:id="horsePhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="horse Phantom"/>
+        </VBox>
         <CheckBox fx:id="drawLines" text="draw Lines"/>
+
+        <Label text="Save as DICOM:"/>
+        <TextField promptText="file name (default: dicom)" fx:id="fileName"/>
+        <Button text="Save" onAction="#saveImage" maxWidth="Infinity"/>
     </VBox>
     <VBox>
         <Canvas fx:id="inputImage" width="400" height="400"/>
@@ -47,7 +55,7 @@
     </VBox>
     <VBox>
         <Canvas fx:id="inputCanvas" width="400" height="400"/>
-        <Canvas fx:id="outputCanvas" width="400" height="400"/>
+        <ImageView fx:id="outputImageView"/>
     </VBox>
     <Canvas fx:id="tomographyCanvas" width="400" height="800"/>
 </HBox>
