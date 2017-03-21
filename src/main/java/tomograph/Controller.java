@@ -7,18 +7,21 @@ import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.image.*;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import org.jtransforms.fft.FloatFFT_1D;
 
-import java.io.File;
+import java.awt.*;
 import java.net.URL;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
 import static java.lang.Math.PI;
-import static java.lang.Math.max;
-import static java.lang.Math.min;
 
 public class Controller implements Initializable {
 
@@ -41,6 +44,10 @@ public class Controller implements Initializable {
     public Label reconstructionErrorLabel;
     public Button drawButton;
     public ProgressBar progressBar;
+    public Slider gammaCorrectionSlider;
+    private float gammaCorrectionValue, threshHoldingValue;
+    public Slider threshHoldingSlider;
+    public Label threshHoldingLabel;
     private double alfa, l;
     private int beta, windowSize;
     private GraphicsContext gc;
@@ -48,6 +55,7 @@ public class Controller implements Initializable {
     private Image image;
     private double r;
     public TextField fileName;
+    public Label gammaCorrectionLabel;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -68,18 +76,31 @@ public class Controller implements Initializable {
             windowSize = (int) windowSlider.getValue();
             windowValue.setText(String.format("%d", windowSize));
         });
+
+        gammaCorrectionSlider.valueProperty().addListener((event) -> {
+            gammaCorrectionValue = (float) gammaCorrectionSlider.getValue();
+            gammaCorrectionLabel.setText(String.format("%.2f", gammaCorrectionValue));
+        });
+        threshHoldingSlider.valueProperty().addListener((event) -> {
+            threshHoldingValue = (float) threshHoldingSlider.getValue();
+            threshHoldingLabel.setText(String.format("%.2f", threshHoldingValue));
+        });
         alfaSlider.setMax(PI);
         lSlider.setMax(PI);
         alfaSlider.setMin(Math.toRadians(0.2));
         alfaSlider.setMax(Math.toRadians(45));
         alfaSlider.setValue(Math.toRadians(3));
         betaSlider.setMax(1000);
-        betaSlider.setValue(85);
+        betaSlider.setValue(200);
         lSlider.setMax(Math.toRadians(250));
         lSlider.setValue(Math.toRadians(180));
         windowSlider.setMin(1);
         windowSlider.setMax(20);
         windowSlider.setValue(1);
+        gammaCorrectionSlider.setMax(4);
+        gammaCorrectionSlider.setValue(1.45f);
+        threshHoldingSlider.setMax(1.f);
+        threshHoldingSlider.setValue(0.1f);
         gc = inputImage.getGraphicsContext2D();
         headPhantom.setSelected(true);
         loadImage();
@@ -114,7 +135,8 @@ public class Controller implements Initializable {
                     for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
                         if (drawLines.isSelected())
                             gc.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR + canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
-                        double val = BresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), pr);
+                        int x1 = (int) (r + r * Math.cos(angle)), y1 = (int) (r + r * Math.sin(angle)), x2 = (int) (r + r * Math.cos(rayAngle)), y2 = (int) (r + r * Math.sin(rayAngle));
+                        double val = BresenhamLine(x1, y1, x2, y2, pr, lineLength(x1, y1, x2, y2));
                         radonTransWritter.setColor(x++, y, Color.hsb(0, 0, val));
                     }
                     y++;
@@ -160,35 +182,61 @@ public class Controller implements Initializable {
                     }
                     y++;
                 }
-                resultImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputImage);
                 Image resultNoFiltredImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputNotFilteredImage);
+                resultImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputImage);
+                doThreshholding((WritableImage) resultImage);
+                correctGamma((WritableImage) resultImage);
 
                 Platform.runLater(() -> {
                     outputImageView.setImage(resultImage);
                     inputCanvas.getGraphicsContext2D().drawImage(resultNoFiltredImage, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
                     reconstructionErrorLabel.setText(String.format("%.2f", countError(image, resultImage)));
+                    drawButton.setDisable(false);
+                    progressBar.setVisible(false);
                 });
-                drawButton.setDisable(false);
-                progressBar.setVisible(false);
             }
         });
         thread.start();
     }
 
-    private void normalize(WritableImage radonTranform) {
-        PixelReader pr = radonTranform.getPixelReader();
+    private double lineLength(int x1, int y1, int x2, int y2) {
+        return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+    }
+
+    private void correctGamma(WritableImage writableImage) {
+        PixelWriter pw = writableImage.getPixelWriter();
+        PixelReader pr = writableImage.getPixelReader();
+        for (int x = 0; x < writableImage.getWidth(); x++)
+            for (int y = 0; y < writableImage.getHeight(); y++) {
+                pw.setColor(x, y, Color.hsb(0, 0, Math.pow(pr.getColor(x, y).getBrightness(), gammaCorrectionValue)));
+            }
+    }
+
+    private void doThreshholding(WritableImage writableImage) {
+        PixelWriter pw = writableImage.getPixelWriter();
+        PixelReader pr = writableImage.getPixelReader();
+        for (int x = 0; x < writableImage.getWidth(); x++)
+            for (int y = 0; y < writableImage.getHeight(); y++) {
+                double val = pr.getColor(x, y).getBrightness();
+                val = Math.max(val,threshHoldingValue);
+                pw.setColor(x, y, Color.hsb(0, 0, Math.max(val,threshHoldingValue)));
+            }
+    }
+
+    private void normalize(WritableImage writableImage) {
+        PixelReader pr = writableImage.getPixelReader();
         double min, max;
         min = max = getBrightness(0, 0, pr);
-        for (int x = 0; x < radonTranform.getWidth(); x++) {
-            for (int y = 0; y < radonTranform.getHeight(); y++) {
+        for (int x = 0; x < writableImage.getWidth(); x++) {
+            for (int y = 0; y < writableImage.getHeight(); y++) {
                 double value = getBrightness(x, y, pr);
                 min = Math.min(value, min);
                 max = Math.max(value, max);
             }
         }
-        PixelWriter pw = radonTranform.getPixelWriter();
-        for (int x = 0; x < radonTranform.getWidth(); x++) {
-            for (int y = 0; y < radonTranform.getHeight(); y++) {
+        PixelWriter pw = writableImage.getPixelWriter();
+        for (int x = 0; x < writableImage.getWidth(); x++) {
+            for (int y = 0; y < writableImage.getHeight(); y++) {
                 double value = getBrightness(x, y, pr);
                 value = (value - min) / (max - min);
                 pw.setColor(x, y, Color.hsb(0, 0, value));
@@ -220,7 +268,7 @@ public class Controller implements Initializable {
 
     }
 
-    private double BresenhamLine(int x1, int y1, int x2, int y2, PixelReader pr) {
+    private double BresenhamLine(int x1, int y1, int x2, int y2, PixelReader pr, double lineLength) {
         int d, dx, dy, ai, bi, xi, yi;
         int x = x1, y = y1;
         double output = 0;
@@ -271,10 +319,10 @@ public class Controller implements Initializable {
                 output += getBrightness(x, y, pr);
             }
         }
-        return output / (2 * r);
+        return output / lineLength;
     }
 
-    double DrawBresenhamLine(int x1, int y1, int x2, int y2, double value, double[][] outputImage) {
+    void DrawBresenhamLine(int x1, int y1, int x2, int y2, double value, double[][] outputImage) {
         int d, dx, dy, ai, bi, xi, yi;
         int x = x1, y = y1;
         double output = 0;
@@ -325,7 +373,6 @@ public class Controller implements Initializable {
                 mark(x, y, value, outputImage);
             }
         }
-        return Math.min(output / (r * 2), 1);
     }
 
     private double getBrightness(int x, int y, PixelReader pr) {
@@ -423,12 +470,12 @@ public class Controller implements Initializable {
 
     public void saveImage(ActionEvent actionEvent) {
         if (resultImage == null)
-            draw(null);
+            showDrawAlert();
         if (fileName.getText().isEmpty())
             fileName.setText("dicom");
         DicomHelper dh = new DicomHelper();
         Properties properties = new Properties();
-        properties.put("00100010", patientName.getText()); // Patien Full Name
+        properties.put("00100010", patientName.getText()); // Patient's Full Name
         properties.put("00100040", patientSex.getText()); //Patient's Sex
         if (patientBirthDate.getValue() != null)
             properties.put("00100030", patientBirthDate.getValue().toString()); //Patient's Birth Date
@@ -441,9 +488,9 @@ public class Controller implements Initializable {
 
     public void saveJpg(ActionEvent actionEvent) {
         if (resultImage == null)
-            draw(null);
+            showDrawAlert();
         DicomHelper dicomHelper = new DicomHelper();
-        dicomHelper.saveImage(image, fileName.getText());
+        dicomHelper.saveImage(resultImage, fileName.getText());
     }
 
     public float countError(Image first, Image second) {
@@ -459,5 +506,13 @@ public class Controller implements Initializable {
                 error += (firstCol - secondCol) * (firstCol - secondCol);
             }
         return error;
+    }
+
+    private void showDrawAlert() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Information");
+        alert.setHeaderText(null);
+        alert.setContentText("Please, draw reconstruction first!");
+        alert.showAndWait();
     }
 }

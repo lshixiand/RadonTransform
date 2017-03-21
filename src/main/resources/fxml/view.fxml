@@ -34,13 +34,19 @@
                 <Label text="window size:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
                 <Slider fx:id="windowSlider" showTickMarks="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                 <Label fx:id="windowValue" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+                <Label text="Gamma correction:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <Slider fx:id="gammaCorrectionSlider" showTickMarks="true" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                <Label fx:id="gammaCorrectionLabel" GridPane.rowIndex="4" GridPane.columnIndex="2"/>
+                <Label text="Thresh holding:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                <Slider fx:id="threshHoldingSlider" showTickMarks="true" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                <Label fx:id="threshHoldingLabel" GridPane.rowIndex="5" GridPane.columnIndex="2"/>
             </GridPane>
             <Button text="Draw" onAction="#draw" maxWidth="Infinity" fx:id="drawButton"/>
             <ProgressBar maxWidth="Infinity" visible="false" fx:id="progressBar"/>
             <fx:define>
                 <ToggleGroup fx:id="imageGroup"/>
             </fx:define>
-            <VBox>
+            <VBox spacing="3">
                 <RadioButton fx:id="squarePhantom" toggleGroup="$imageGroup" onAction="#loadImage" text="square"/>
                 <RadioButton fx:id="twoCirclePhantom" toggleGroup="$imageGroup" onAction="#loadImage"
                              text="two circles"/>
