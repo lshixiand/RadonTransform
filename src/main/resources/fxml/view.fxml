@@ -37,7 +37,7 @@
                 <Label text="Gamma correction:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
                 <Slider fx:id="gammaCorrectionSlider" showTickMarks="true" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
                 <Label fx:id="gammaCorrectionLabel" GridPane.rowIndex="4" GridPane.columnIndex="2"/>
-                <Label text="Thresh holding:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                <Label text="Threshholding:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
                 <Slider fx:id="threshHoldingSlider" showTickMarks="true" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
                 <Label fx:id="threshHoldingLabel" GridPane.rowIndex="5" GridPane.columnIndex="2"/>
             </GridPane>
@@ -86,7 +86,7 @@
             <Button text="Save JPG" onAction="#saveJpg" maxWidth="Infinity"/>
             <HBox spacing="20">
                 <Label text="Reconstruction error:"/>
-                <Label fx:id="reconstructionErrorLabel"/>
+                <Label fx:id="reconstructionErrorLabel" onMouseClicked="#copyError"/>
             </HBox>
         </VBox>
         <VBox>

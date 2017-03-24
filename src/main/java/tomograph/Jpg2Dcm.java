@@ -1,11 +1,5 @@
 package tomograph;
 
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by Fernflower decompiler)
-//
-
-import org.apache.commons.cli.*;
 import org.dcm4che2.data.BasicDicomObject;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
@@ -14,50 +8,11 @@ import org.dcm4che2.io.DicomOutputStream;
 import org.dcm4che2.util.UIDUtils;
 
 import java.io.*;
-import java.util.*;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Properties;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
-import org.dcm4che2.data.BasicDicomObject;
-import org.dcm4che2.data.DicomObject;
-import org.dcm4che2.data.Tag;
-import org.dcm4che2.data.VR;
-import org.dcm4che2.io.DicomOutputStream;
-import org.dcm4che2.util.UIDUtils;
 
 public class Jpg2Dcm {
-    private static final String USAGE = "jpg2dcm [Options] <jpgfile> <dcmfile>";
-    private static final String DESCRIPTION = "Encapsulate JPEG Image into DICOM Object.\nOptions:";
-    private static final String EXAMPLE = "--\nExample 1: Encapulate JPEG Image verbatim with default values for mandatory DICOM attributes into DICOM Secondary Capture Image:\n$ jpg2dcm image.jpg image.dcm\n--\nExample 2: Encapulate JPEG Image without application segments and additional DICOM attributes to mandatory defaults into DICOM Image Object:\n$ jpg2dcm --no-appn -c patattrs.cfg homer.jpg image.dcm\n--\nExample 3: Encapulate MPEG2 Video with specified DICOM attributes into DICOM Video Object:\n$ jpg2dcm --mpeg -C mpg2dcm.cfg video.mpg video.dcm";
-    private static final String LONG_OPT_CHARSET = "charset";
-    private static final String OPT_CHARSET_DESC = "Specific Character Set code string, ISO_IR 100 by default";
-    private static final String OPT_AUGMENT_CONFIG_DESC = "Specifies DICOM attributes included additional to mandatory defaults";
-    private static final String OPT_REPLACE_CONFIG_DESC = "Specifies DICOM attributes included instead of mandatory defaults";
-    private static final String LONG_OPT_TRANSFER_SYNTAX = "transfer-syntax";
-    private static final String OPT_TRANSFER_SYNTAX_DESC = "Transfer Syntax; 1.2.840.10008.1.2.4.50 (JPEG Baseline) by default.";
-    private static final String LONG_OPT_MPEG = "mpeg";
-    private static final String OPT_MPEG_DESC = "Same as --transfer-syntax 1.2.840.10008.1.2.4.100 (MPEG2).";
-    private static final String LONG_OPT_UID_PREFIX = "uid-prefix";
-    private static final String OPT_UID_PREFIX_DESC = "Generate UIDs with given prefix, 1.2.40.0.13.1.<host-ip> by default.";
-    private static final String LONG_OPT_NO_APPN = "no-appn";
-    private static final String OPT_NO_APPN_DESC = "Exclude application segments APPn from JPEG stream; encapsulate JPEG stream verbatim by default.";
-    private static final String OPT_HELP_DESC = "Print this message";
-    private static final String OPT_VERSION_DESC = "Print the version information and exit";
     private static int FF = 255;
     private static int SOF = 192;
     private static int DHT = 196;

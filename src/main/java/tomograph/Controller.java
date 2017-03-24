@@ -13,10 +13,11 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.*;
 import javafx.scene.image.Image;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import org.jtransforms.fft.FloatFFT_1D;
-
-import java.awt.*;
 import java.net.URL;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -98,7 +99,7 @@ public class Controller implements Initializable {
         windowSlider.setMax(20);
         windowSlider.setValue(1);
         gammaCorrectionSlider.setMax(4);
-        gammaCorrectionSlider.setValue(1.45f);
+        gammaCorrectionSlider.setValue(1.65f);
         threshHoldingSlider.setMax(1.f);
         threshHoldingSlider.setValue(0.1f);
         gc = inputImage.getGraphicsContext2D();
@@ -111,90 +112,87 @@ public class Controller implements Initializable {
     public void draw(ActionEvent actionEvent) {
         drawButton.setDisable(true);
         progressBar.setVisible(true);
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                gc.setFill(Color.BLACK);
-                gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+        final Thread thread = new Thread(() -> {
+            gc.setFill(Color.BLACK);
+            gc.fillRect(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
 
-                inputImage.getGraphicsContext2D().drawImage(image, 0, 0);
+            inputImage.getGraphicsContext2D().drawImage(image, 0, 0);
 
-                PixelReader pr = image.getPixelReader();
-                gc.drawImage(image, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-                r = Math.min(image.getWidth(), image.getHeight());
-                r -= 2;
-                r /= 2;
-                double canvasR = (Math.min(inputCanvas.getWidth(), inputCanvas.getHeight()) - 2) / 2.f;
-                gc.setStroke(Color.RED);
-                if (drawLines.isSelected())
-                    gc.strokeOval(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-                WritableImage radonTranform = new WritableImage(beta, (int) ((2 * PI) / alfa + 1));
-                PixelWriter radonTransWritter = radonTranform.getPixelWriter();
-                int x = 0, y = 0;
-                for (float angle = 0; angle < 2.f * PI; angle += alfa) {
-                    for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
-                        if (drawLines.isSelected())
-                            gc.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR + canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
-                        int x1 = (int) (r + r * Math.cos(angle)), y1 = (int) (r + r * Math.sin(angle)), x2 = (int) (r + r * Math.cos(rayAngle)), y2 = (int) (r + r * Math.sin(rayAngle));
-                        double val = BresenhamLine(x1, y1, x2, y2, pr, lineLength(x1, y1, x2, y2));
-                        radonTransWritter.setColor(x++, y, Color.hsb(0, 0, val));
-                    }
-                    y++;
-                    x = 0;
+            PixelReader pr = image.getPixelReader();
+            gc.drawImage(image, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+            r = Math.min(image.getWidth(), image.getHeight());
+            r -= 2;
+            r /= 2;
+            double canvasR = (Math.min(inputCanvas.getWidth(), inputCanvas.getHeight()) - 2) / 2.f;
+            gc.setStroke(Color.RED);
+            if (drawLines.isSelected())
+                gc.strokeOval(0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+            WritableImage radonTranform = new WritableImage(beta, (int) ((2 * PI) / alfa + 1));
+            PixelWriter radonTransWritter = radonTranform.getPixelWriter();
+            int x = 0, y = 0;
+            for (float angle = 0; angle < 2.f * PI; angle += alfa) {
+                for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
+                    if (drawLines.isSelected())
+                        gc.strokeLine(canvasR + canvasR * Math.cos(angle), canvasR + canvasR * Math.sin(angle), canvasR + canvasR * Math.cos(rayAngle), canvasR + canvasR * Math.sin(rayAngle));
+                    int x1 = (int) (r + r * Math.cos(angle)), y1 = (int) (r + r * Math.sin(angle)), x2 = (int) (r + r * Math.cos(rayAngle)), y2 = (int) (r + r * Math.sin(rayAngle));
+                    double val = BresenhamLine(x1, y1, x2, y2, pr, lineLength(x1, y1, x2, y2));
+                    radonTransWritter.setColor(x++, y, Color.hsb(0, 0, val));
                 }
-                normalize(radonTranform);
-                tomographyCanvas.getGraphicsContext2D().drawImage(radonTranform, 0, 0, tomographyCanvas.getWidth(), tomographyCanvas.getHeight());
-                //drawPlot
-                PixelReader pr2 = radonTranform.getPixelReader();
-                float[] plotData = new float[beta];
-                for (int i = 0; i < beta; i++) {
-                    plotData[i] = (float) pr2.getColor(i, 0).getBrightness();
-                }
-                drawPlot(plot, plotData, beta);
-                FloatFFT_1D floatFFT = new FloatFFT_1D(beta / 2);
-                floatFFT.complexForward(plotData);
-                for (int i = 0; i < beta / 2; i++)
-                    plotData[i] *= (float) i / beta;
-                for (int i = beta / 2; i < beta; i++)
-                    plotData[i] *= 1f - (float) i / beta;
-                drawPlot(fft, plotData, beta);
-                floatFFT.complexInverse(plotData, false);
-                drawPlot(filteredCanvas, plotData, beta);
-                smoothData(plotData, beta);
-                drawPlot(ifft, plotData, beta);
-                double[][] outputImage = new double[(int) image.getWidth()][(int) image.getHeight()];
-                double[][] outputNotFilteredImage = new double[(int) image.getWidth()][(int) image.getHeight()];
-                y = 0;
-                for (float angle = 0; angle < 2.f * PI; angle += alfa) {
-                    float data[] = new float[beta];
-                    for (int i = 0; i < beta; i++)
-                        data[i] = (float) pr2.getColor(i, y).getBrightness();
-                    filter(data, beta);
-                    smoothData(data, beta);
-                    x = 0;
-                    for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
-                        double noFiltredData = pr2.getColor(x, y).getBrightness();
-                        double filterdData = data[x];
-                        x++;
-                        DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), filterdData, outputImage);
-                        DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), noFiltredData, outputNotFilteredImage);
-
-                    }
-                    y++;
-                }
-                Image resultNoFiltredImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputNotFilteredImage);
-                resultImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputImage);
-                doThreshholding((WritableImage) resultImage);
-                correctGamma((WritableImage) resultImage);
-
-                Platform.runLater(() -> {
-                    outputImageView.setImage(resultImage);
-                    inputCanvas.getGraphicsContext2D().drawImage(resultNoFiltredImage, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
-                    reconstructionErrorLabel.setText(String.format("%.2f", countError(image, resultImage)));
-                    drawButton.setDisable(false);
-                    progressBar.setVisible(false);
-                });
+                y++;
+                x = 0;
             }
+            normalize(radonTranform);
+            tomographyCanvas.getGraphicsContext2D().drawImage(radonTranform, 0, 0, tomographyCanvas.getWidth(), tomographyCanvas.getHeight());
+            //drawPlot
+            PixelReader pr2 = radonTranform.getPixelReader();
+            float[] plotData = new float[beta];
+            for (int i = 0; i < beta; i++) {
+                plotData[i] = (float) pr2.getColor(i, 0).getBrightness();
+            }
+            drawPlot(plot, plotData, beta);
+            FloatFFT_1D floatFFT = new FloatFFT_1D(beta / 2);
+            floatFFT.complexForward(plotData);
+            for (int i = 0; i < beta / 2; i++)
+                plotData[i] *= (float) i / beta;
+            for (int i = beta / 2; i < beta; i++)
+                plotData[i] *= 1f - (float) i / beta;
+            drawPlot(fft, plotData, beta);
+            floatFFT.complexInverse(plotData, false);
+            drawPlot(filteredCanvas, plotData, beta);
+            smoothData(plotData, beta);
+            drawPlot(ifft, plotData, beta);
+            double[][] outputImage = new double[(int) image.getWidth()][(int) image.getHeight()];
+            double[][] outputNotFilteredImage = new double[(int) image.getWidth()][(int) image.getHeight()];
+            y = 0;
+            for (float angle = 0; angle < 2.f * PI; angle += alfa) {
+                float data[] = new float[beta];
+                for (int i = 0; i < beta; i++)
+                    data[i] = (float) pr2.getColor(i, y).getBrightness();
+                filter(data, beta);
+                smoothData(data, beta);
+                x = 0;
+                for (double rayAngle = angle + PI - l / 2; rayAngle <= angle + PI + l / 2; rayAngle += l / (beta - 1)) {
+                    double noFiltredData = pr2.getColor(x, y).getBrightness();
+                    double filterdData = data[x];
+                    x++;
+                    DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), filterdData, outputImage);
+                    DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), noFiltredData, outputNotFilteredImage);
+
+                }
+                y++;
+            }
+            Image resultNoFiltredImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputNotFilteredImage);
+            resultImage = normalizeAndMakeImage((int) image.getWidth(), (int) image.getHeight(), outputImage);
+            doThreshholding((WritableImage) resultImage);
+            correctGamma((WritableImage) resultImage);
+
+            Platform.runLater(() -> {
+                outputImageView.setImage(resultImage);
+                inputCanvas.getGraphicsContext2D().drawImage(resultNoFiltredImage, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
+                reconstructionErrorLabel.setText(String.format("%.5f%%", countError(image, resultImage)));
+                drawButton.setDisable(false);
+                progressBar.setVisible(false);
+            });
         });
         thread.start();
     }
@@ -417,10 +415,6 @@ public class Controller implements Initializable {
         if (windowSize <= 1) return;
         float sum;
         float[] output = data.clone();
-//        float average = 0;
-//        for(int i=0;i<size;i++)
-//            average+=data[i];
-//        average/=size;
         for (int i = 0; i < size; i++) {
             sum = 0;
             for (int j = Math.max(0, i - windowSize / 2); j < Math.min(i + windowSize / 2, size); j++) {
@@ -493,19 +487,19 @@ public class Controller implements Initializable {
         dicomHelper.saveImage(resultImage, fileName.getText());
     }
 
-    public float countError(Image first, Image second) {
+    private float countError(Image first, Image second) {
         PixelReader firstPR = first.getPixelReader();
         PixelReader secondPR = second.getPixelReader();
         if (first.getWidth() != second.getWidth() || first.getHeight() != second.getHeight())
             throw new RuntimeException("Not equal sizes of compared images");
-        float error = 0;
+        double error = 0;
         for (int x = 0; x < first.getWidth(); x++)
             for (int y = 0; y < first.getHeight(); y++) {
                 double firstCol = firstPR.getColor(x, y).getBrightness();
                 double secondCol = secondPR.getColor(x, y).getBrightness();
                 error += (firstCol - secondCol) * (firstCol - secondCol);
             }
-        return error;
+        return (float)(100.f*error/(first.getHeight()*first.getWidth()));
     }
 
     private void showDrawAlert() {
@@ -514,5 +508,12 @@ public class Controller implements Initializable {
         alert.setHeaderText(null);
         alert.setContentText("Please, draw reconstruction first!");
         alert.showAndWait();
+    }
+
+    public void copyError(MouseEvent mouseEvent) {
+        Clipboard systemClipboard = Clipboard.getSystemClipboard();
+        ClipboardContent content = new ClipboardContent();
+        content.putString(reconstructionErrorLabel.getText());
+        systemClipboard.setContent(content);
     }
 }
