@@ -58,32 +58,38 @@
 Kolejno do wpółpracy z formatem plików DICOM oraz do transformacji Fourie'a.
 
 \section{Przebieg programu}
-Po wybraniu odpowiedniego zdjęcia algorytm symuluje przechodzenie promieni rentgena przez obraz poprzez zsumowanie wartości $b$ (brightness) z modelu $HSB$ koloru danego piksela. Kolejne piksele wchodzące w skład sumy są wybierane za pomogą algorytmu Bresenhama. Wartość sumy jest także normalizowana względen długości lini. Do projektu został wybrany model stożkowy układu emiter/detektor. Daną symulację opisują trzy parametry warunkujące rozmieszczenie emiterów i detektorów. Wartość $\alpha$ odpowiada za kąt pomiędzy kolejnymi emiterami rozmieszczonymi na okręgu. Parametr $\beta$ to ilość promieni wchodzących w skład pojedyńczego stożka. Zaś $l$ decyduje o rozpiętości stożka, przy czym w programie jest to kąt wewnętrzny. Kąt zewnętrzny rozwacria stożka możemy policzyć z twierdzenia o kącie wpisanym i środkowym. Wtedy kąt rozpiętości stożka przy emiterach wynosi $\frac{l}{2}$. Opisane zagadnienia pokazuje rysunek 2 \hyperlink{ramlak}{[1]}.
+Po wybraniu odpowiedniego zdjęcia algorytm symuluje przechodzenie promieni rentgena przez obraz poprzez zsumowanie wartości $b$ (brightness) z modelu $HSB$ koloru danego piksela. Kolejne piksele wchodzące w skład sumy są wybierane za pomogą algorytmu Bresenhama. Wartość sumy jest także normalizowana względen długości lini. Do projektu został wybrany model stożkowy układu emiter/detektor. Daną symulację opisują trzy parametry warunkujące rozmieszczenie emiterów i detektorów. Wartość $\alpha$ odpowiada za kąt pomiędzy kolejnymi emiterami rozmieszczonymi na okręgu. Parametr $\beta$ to ilość promieni wchodzących w skład pojedyńczego stożka. Zaś $l$ decyduje o rozpiętości stożka, przy czym w programie jest to kąt wewnętrzny. Kąt zewnętrzny rozwacria stożka możemy policzyć z twierdzenia o kącie wpisanym i środkowym. Wtedy kąt rozpiętości stożka przy emiterach wynosi $\frac{l}{2}$. Opisane zagadnienia pokazuje rysunek 2.
 
-\begin{figure}
-\begin{center}
+\begin{figure}[h]
+\centering
 \includegraphics[width=0.5\linewidth, height=0.5\linewidth]{images/alfabetal.jpg}
-\end{center}
 \caption{Parametry symulacji}
 \end{figure}
 
-Z obliczonych promieni powstaje singoram w którym w każdym wierszu znajdują się wartości z pojedyńczego stożka, a w każdej kolumnie wynik dla pojedyńczego promienia. Oczywście wyświetlany singoram jest unormaowany i zamieniony na przestrzeń barw $RGB$.
+Z obliczonych promieni powstaje singoram w którym w każdym wierszu znajdują się wartości z pojedyńczego stożka, a w każdej kolumnie wynik dla pojedyńczego promienia. Oczywście wyświetlany singoram jest unormaowany i zamieniony na przestrzeń barw $RGB$ (rys 4).
 
-Z dotychczas zebranych danych tworzone jest odwzorowanie przy pomocy odwrotnej transformacji radona. Pojedyńczy wiersz singoramu jest zaminiany za pomoca transformacji Fourier'a na przesztrzeń częstotliwociową. Następnie wytłumiane są sygnały o nadłuższych okresach a uwydatniane te o najwyższych częstotliwościach, przez użycie filtru Ram-Lak'a. Następnie po zastosowaniu odwrotnej transformacji Fourier'a dane promienie są zaznaczane na nowym obrazie. Rysunek 3 przedstawia kolejnoc zastosowanych tranformacji.
-\begin{figure}
-\includegraphics[width=1\linewidth]{images/ramlak.png}
-\caption{Kolejnoc zastosowanych transformacji $l$.}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\linewidth]{images/ramlak.png}[h]
+\caption{Kolejność zastosowanych transformacji.}
 \end{figure}
-Ponieważ pojawił się problem normalizacji rysowanie najpierw odbywa się w osobnej tabeli w której są sumowane wartoci nakładanej linie po czym tablicza jest normalizowana i nakładana na docelowy obraz jako $B$ w przestrzeni barw $HSB$. Należało jeszcze zastosować korekcję gamma by przesunąć ku czerni szrą powiatę, oraz by uwydatnić janiesze punkty. Dodałem także opcję thresholdingu najciemniejszych punktów, gdyż  w trackie rozwiazywania problemów związanych z powiatą była to jedna z możliwości polepszenia jakści obrazu. Okazuje się jednak że treshholding na poziomie 10\% obrobinę zmniejsza błąd odwzorowania.  Interfejs użytkownika umożliwia zmianę parametrów, jednak po włączeniu programu mają one ustawione najkorzystniejsze wartości i mogłby zostać ustawione w ten sposób na stałe.
-\begin{figure}
-\begin{center}
-	 \begin{tabular}{cc}
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{cc}
 \includegraphics[ height=0.9\linewidth]{images/sinogram.png} &
 \includegraphics[width=0.5\linewidth, height=0.5\linewidth]{images/head.png}
-	\end{tabular}
-\end{center}
-\caption{Singoram oraz wejściowy obrazu}
+\end{tabular}
+\caption{Singoram oraz wejściowy obraz.}
 \end{figure}
+
+
+
+Z dotychczas zebranych danych tworzone jest odwzorowanie przy pomocy odwrotnej transformacji radona. Pojedyńczy wiersz singoramu jest zaminiany za pomoca transformacji Fourier'a na przestrzeń częstotliwościową. Następnie wytłumiane są sygnały o nadłuższych okresach a uwydatniane te o najwyższych częstotliwościach, przez użycie filtru Ram-Lak'a. Następnie po zastosowaniu odwrotnej transformacji Fourier'a dane promienie są zaznaczane na nowym obrazie. Rysunek 3 przedstawia kolejność zastosowanych tranformacji \hyperlink{ramlak}{[1]}.
+
+
+Ponieważ pojawił się problem normalizacji rysowanie najpierw odbywa się w osobnej tabeli w której są sumowane wartości nakładanej linii po czym tablica jest normalizowana i nakładana na docelowy obraz jako $B$ w przestrzeni barw $HSB$. Należało jeszcze zastosować korekcję gamma by przesunąć ku czerni szarą poświatę, oraz by uwydatnić janiesze punkty. Dodałem także opcję thresholdingu najciemniejszych punktów, gdyż  w trackie rozwiazywania problemów związanych z poświatą była to jedna z możliwości polepszenia jakści obrazu. Okazuje się jednak że treshholding na poziomie 10\% obrobinę zmniejsza błąd odwzorowania.  Interfejs użytkownika umożliwia zmianę parametrów, jednak po włączeniu programu mają one ustawione na najkorzystniejsze wartości i mogłby równe dobrze zostać ustawione na stałe.
+
 
 \section{Statystyki}
 \indent Ważnym aspektem było także pokazanie jak kolejne parametry wpływają na jako wygenerowanego odzworowania.
@@ -132,24 +138,32 @@ Ponieważ pojawił się problem normalizacji rysowanie najpierw odbywa się w os
      $ l = 80^{\circ} $ &
      $ l = 175^{\circ} $ &
      $ l = 250^{\circ} $ 	
+     \tabularnewline
 	\end{tabular} 
 \end{table}
 
 Kolejne odwzorowanie obrazu są pokazane w tabeli 1. W pierwszym przypadku ze zmiennym parametrem $\alpha$ wartość $\beta$ = 150, zaś $ l = 250^{\circ}$. W Drugim wierszy zminiana była wartość $\beta$ przy stałych wartościach $\alpha = 3^{\circ}$ oraz $ l = 250^{\circ}$. W ostatnim wierszy zmianana była wartość $l$ przy $\alpha = 3^{\circ}$ i $beta = 150$
 
-Rysunek 5, 6 oraz 7 pokazują wartość błędu odwzorowania w zależności od parametrów $\alpha$, $\beta$ oraz $l$. Błąd to obliczony błąd średniokwadratowy pomiędzy wejściwoym obrazem a obrazami wyjściowymi w wersji z filtracją oraz bez.
+Na pokazanych obrazch widać, że parametr $\alpha$ oraz $\beta$ wpływają na rozdzielczość generowanego obrazu, zaś $l$ ma wpływ na promień obszaru w którym odwzorowanie jest skuteczne. Dlatego nasz fantom powinnien znajdować się we wielokącie powstałym z części wspólnych stożków, aby móc dobrze odwzorować obraz.
+
+Rysunki 5, 6 oraz 7 pokazują wartość błędu odwzorowania w zależności od parametrów $\alpha$, $\beta$ oraz $l$. Błąd to obliczony błąd średniokwadratowy pomiędzy wejściowym obrazem a obrazami wyjściowymi w wersji z filtracją oraz bez. Można to wyrazić wzorem
+
+\[e = \sum\limits_{x,y} (B_{in} - B_{out})^2\]
+
+gdzie $B_{in}$  oraz $B_{out}$ to brightness pixel'a w punkcie $(x,y)$ dla obrazu wejściowego i wyjściowego.
+
+Z wykresów można zauważyć ze filtracja od pewnego momentu znacząco wpływa na błąd odwzorowania. Dodatkowo można zauważyć że bez filtracji pomimo zminay wartoći $\alpha$ obraz nie filtrowany nie polepsza swojej jakości od $\alpha<8$. A także że dla parametru $\beta$ od wartości $135$, przez to że obraz zaczyna się rozjaśniać i powstaje poświata, błąd odworowania zwiększa się. Ponieważ użyty obraz wejściowy jest w większości czarny błąd zaczynał się dopiero od $5\%$.
 \begin{figure}
-\centering
 \includegraphics[width=1\linewidth]{images/alfaPlot.png} 
-\caption{Wykres błędu odwzorowania w zależnoci od parametu $\alpha$.}
+\caption{Wykres błędu odwzorowania w zależności od parametu $\alpha$.}
 \end{figure}
 \begin{figure}
 \includegraphics[width=1\linewidth]{images/betaPlot.png}
-\caption{Wykres błędu odwzorowania w zależnoci od parametu $\beta$.}
+\caption{Wykres błędu odwzorowania w zależności od parametu $\beta$.}
 \end{figure}
 \begin{figure}
 \includegraphics[width=1\linewidth]{images/lPlot.png}
-\caption{Wykres błędu odwzorowania w zależnoci od parametu $l$.}
+\caption{Wykres błędu odwzorowania w zależnśoci od parametu $l$.}
 \end{figure}
 
 \begin{thebibliography}{9}
