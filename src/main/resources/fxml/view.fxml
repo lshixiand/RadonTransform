@@ -16,7 +16,7 @@
 <?import javafx.scene.control.ProgressBar?>
 <ScrollPane fx:controller="tomograph.Controller" xmlns:fx="http://javafx.com/fxml" style="-fx-background: #000000;">
     <HBox prefHeight="250" prefWidth="250">
-        <VBox spacing="20" minWidth="350">
+        <VBox spacing="15" minWidth="350">
             <padding>
                 <Insets top="25" right="10" bottom="25" left="10"/>
             </padding>
@@ -87,6 +87,10 @@
             <HBox spacing="20">
                 <Label text="Reconstruction error:"/>
                 <Label fx:id="reconstructionErrorLabel" onMouseClicked="#copyError"/>
+            </HBox>
+            <HBox spacing="20">
+                <Label text="No filter error:"/>
+                <Label fx:id="reconstructionErrorNoFilterLabel" onMouseClicked="#copyError"/>
             </HBox>
         </VBox>
         <VBox>

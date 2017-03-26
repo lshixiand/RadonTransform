@@ -1,5 +1,6 @@
 package tomograph;
 
+import com.sun.javafx.scene.control.skin.LabeledText;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -46,6 +47,7 @@ public class Controller implements Initializable {
     public Button drawButton;
     public ProgressBar progressBar;
     public Slider gammaCorrectionSlider;
+    public Label reconstructionErrorNoFilterLabel;
     private float gammaCorrectionValue, threshHoldingValue;
     public Slider threshHoldingSlider;
     public Label threshHoldingLabel;
@@ -84,7 +86,7 @@ public class Controller implements Initializable {
         });
         threshHoldingSlider.valueProperty().addListener((event) -> {
             threshHoldingValue = (float) threshHoldingSlider.getValue();
-            threshHoldingLabel.setText(String.format("%.2f", threshHoldingValue));
+            threshHoldingLabel.setText(String.format("%.2f%%", threshHoldingValue));
         });
         alfaSlider.setMax(PI);
         lSlider.setMax(PI);
@@ -93,6 +95,7 @@ public class Controller implements Initializable {
         alfaSlider.setValue(Math.toRadians(3));
         betaSlider.setMax(1000);
         betaSlider.setValue(200);
+        lSlider.setMin(Math.toRadians(1));
         lSlider.setMax(Math.toRadians(250));
         lSlider.setValue(Math.toRadians(180));
         windowSlider.setMin(1);
@@ -175,8 +178,8 @@ public class Controller implements Initializable {
                     double noFiltredData = pr2.getColor(x, y).getBrightness();
                     double filterdData = data[x];
                     x++;
-                    DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), filterdData, outputImage);
-                    DrawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), noFiltredData, outputNotFilteredImage);
+                    drawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), filterdData, outputImage);
+                    drawBresenhamLine((int) (r + r * Math.cos(angle)), (int) (r + r * Math.sin(angle)), (int) (r + r * Math.cos(rayAngle)), (int) (r + r * Math.sin(rayAngle)), noFiltredData, outputNotFilteredImage);
 
                 }
                 y++;
@@ -190,6 +193,7 @@ public class Controller implements Initializable {
                 outputImageView.setImage(resultImage);
                 inputCanvas.getGraphicsContext2D().drawImage(resultNoFiltredImage, 0, 0, inputCanvas.getWidth(), inputCanvas.getHeight());
                 reconstructionErrorLabel.setText(String.format("%.5f%%", countError(image, resultImage)));
+                reconstructionErrorNoFilterLabel.setText(String.format("%.5f%%", countError(image, resultNoFiltredImage)));
                 drawButton.setDisable(false);
                 progressBar.setVisible(false);
             });
@@ -320,7 +324,7 @@ public class Controller implements Initializable {
         return output / lineLength;
     }
 
-    void DrawBresenhamLine(int x1, int y1, int x2, int y2, double value, double[][] outputImage) {
+    void drawBresenhamLine(int x1, int y1, int x2, int y2, double value, double[][] outputImage) {
         int d, dx, dy, ai, bi, xi, yi;
         int x = x1, y = y1;
         double output = 0;
@@ -511,9 +515,10 @@ public class Controller implements Initializable {
     }
 
     public void copyError(MouseEvent mouseEvent) {
+        String text = ((LabeledText)mouseEvent.getTarget()).getText();
         Clipboard systemClipboard = Clipboard.getSystemClipboard();
         ClipboardContent content = new ClipboardContent();
-        content.putString(reconstructionErrorLabel.getText());
+        content.putString(text);
         systemClipboard.setContent(content);
     }
 }
